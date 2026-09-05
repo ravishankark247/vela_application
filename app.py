@@ -1,4 +1,5 @@
 import html
+import secrets
 from datetime import datetime
 from pathlib import Path
 
@@ -214,31 +215,50 @@ def render_login() -> None:
     st.markdown('<div class="brand"><span class="brand-mark"></span>vela</div>', unsafe_allow_html=True)
     if not st.session_state.otp_sent:
         st.markdown("## Welcome to Vela")
-        st.write("Sign in with your mobile number to keep your conversations, scans, and files together.")
-        phone = st.text_input("Mobile number", value=st.session_state.phone, key="phone", placeholder="+91 98765 43210")
+        login_provider = auth.provider()
+        login_label = "Mobile number" if login_provider == "sms" else "Email address" if login_provider == "email" else "Mobile number or email"
+        login_placeholder = "+91 98765 43210" if login_provider == "sms" else "you@example.com" if login_provider == "email" else "+91 98765 43210"
+        st.write("Sign in with a verified mobile number or email address to keep your conversations, scans, and files together.")
+        if login_provider == "demo":
+            st.info("Free email OTP is not configured yet. Add SMTP secrets to enable email verification.")
+        phone = st.text_input(login_label, value=st.session_state.phone, key="phone", placeholder=login_placeholder)
         if st.button("Send OTP", type="primary", use_container_width=True):
             if phone.strip():
                 normalized_phone = phone.strip()
-                if auth.configured():
+                if login_provider == "sms":
                     if auth.send_code(normalized_phone):
-                        st.session_state.phone = normalized_phone
                         st.session_state.otp_sent = True
                         st.rerun()
-                    st.error("Could not send the verification code. Check the number and SMS provider settings.")
+                    error_detail = auth.last_error or "Check the phone number and Twilio Verify settings."
+                    st.error(f"Could not send the verification code: {error_detail}")
+                elif login_provider == "email":
+                    code = f"{secrets.randbelow(1_000_000):06d}"
+                    if auth.send_email_code(normalized_phone, code):
+                        st.session_state.otp_code = code
+                        st.session_state.otp_sent = True
+                        st.rerun()
+                    st.error(f"Could not send the verification code: {auth.last_error}")
                 else:
-                    st.session_state.phone = phone.strip()
                     st.session_state.otp_sent = True
                     st.rerun()
     else:
         st.markdown("## Check your messages")
-        st.write("We sent a one-time code to your mobile number.")
+        contact_label = {"sms": "mobile number", "email": "email address"}.get(auth.provider(), "contact")
+        st.write(f"We sent a one-time code to your {contact_label}.")
         otp = st.text_input("6-digit OTP", max_chars=6, key="otp")
-        if auth.configured():
+        if auth.provider() == "sms":
             st.caption("Enter the verification code sent by SMS.")
+        elif auth.provider() == "email":
+            st.caption("Enter the verification code sent by email.")
         else:
             st.caption("Demo OTP: 123456. Configure Twilio for real verification.")
         if st.button("Verify and open Vela", type="primary", use_container_width=True):
-            verified = auth.verify_code(st.session_state.phone, otp) if auth.configured() else otp == "123456"
+            if auth.provider() == "sms":
+                verified = auth.verify_code(st.session_state.phone, otp)
+            elif auth.provider() == "email":
+                verified = secrets.compare_digest(st.session_state.get("otp_code", ""), otp)
+            else:
+                verified = otp == "123456"
             if verified:
                 st.session_state.logged_in = True
                 st.rerun()

@@ -34,6 +34,14 @@ python3 preview.py
 
 Use phone numbers in international E.164 format, such as `+919876543210`. Never put these credentials in source control. Twilio, the deployed server, and the user's network must all be available for SMS verification and always-online access.
 
+For Streamlit Community Cloud, open the deployed app's `Manage app` menu, choose `Settings` then `Secrets`, and paste the keys from `.streamlit/secrets.toml.example` with your real Twilio values. Restart the app after saving. Create the Verify Service SID in the Twilio Console under Verify, and ensure the destination country is enabled in your Twilio Geo Permissions.
+
+## Free verification option
+
+If SMS is not required, configure the SMTP values in `.streamlit/secrets.toml` to send OTPs by email. Gmail can be used without a paid service by enabling two-step verification and creating an app password. The app automatically uses SMS first, email second, and demo OTP last. Email is free only within your email provider's limits; real phone SMS cannot be guaranteed free.
+
+To force the free email path when both providers are configured, add `OTP_PROVIDER = "email"`. The app cannot send email without an SMTP account and app password; those values must be added in Streamlit Cloud Secrets and are never stored in this repository.
+
 ## Deploy to Streamlit Community Cloud
 
 1. Push this folder to a GitHub repository.
