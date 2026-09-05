@@ -21,6 +21,19 @@ python3 preview.py
 
 Demo OTP: `123456`
 
+## Real SMS verification
+
+The included demo OTP is used only when Twilio is not configured. For real phone-number verification, create a Twilio Verify service and set these environment variables before starting Vela:
+
+```bash
+export TWILIO_ACCOUNT_SID=your-account-sid
+export TWILIO_AUTH_TOKEN=your-auth-token
+export TWILIO_VERIFY_SERVICE_SID=your-verify-service-sid
+python3 preview.py
+```
+
+Use phone numbers in international E.164 format, such as `+919876543210`. Never put these credentials in source control. Twilio, the deployed server, and the user's network must all be available for SMS verification and always-online access.
+
 ## Deploy to Streamlit Community Cloud
 
 1. Push this folder to a GitHub repository.

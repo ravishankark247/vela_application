@@ -4,6 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 import database
+import auth
 from vela_ai import tutor_answer
 
 st.set_page_config(page_title="Vela", page_icon="V", layout="wide", initial_sidebar_state="expanded")
@@ -137,6 +138,8 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "otp_sent" not in st.session_state:
     st.session_state.otp_sent = False
+if "phone" not in st.session_state:
+    st.session_state.phone = ""
 if "chats" not in st.session_state:
     st.session_state.chats = [dict(chat) for chat in DEFAULT_CHATS]
     for chat, default in zip(st.session_state.chats, DEFAULT_CHATS):
@@ -162,6 +165,12 @@ if "database_ready" not in st.session_state:
         st.session_state.database_error = None
     except Exception as error:
         st.session_state.database_ready = False
+        st.session_state.database_error = str(error)
+else:
+    try:
+        database.health_check()
+        st.session_state.database_error = None
+    except Exception as error:
         st.session_state.database_error = str(error)
 
 
@@ -206,22 +215,35 @@ def render_login() -> None:
     if not st.session_state.otp_sent:
         st.markdown("## Welcome to Vela")
         st.write("Sign in with your mobile number to keep your conversations, scans, and files together.")
-        phone = st.text_input("Mobile number", value="98765 43210", key="phone")
+        phone = st.text_input("Mobile number", value=st.session_state.phone, key="phone", placeholder="+91 98765 43210")
         if st.button("Send OTP", type="primary", use_container_width=True):
             if phone.strip():
-                st.session_state.otp_sent = True
-                st.rerun()
+                normalized_phone = phone.strip()
+                if auth.configured():
+                    if auth.send_code(normalized_phone):
+                        st.session_state.phone = normalized_phone
+                        st.session_state.otp_sent = True
+                        st.rerun()
+                    st.error("Could not send the verification code. Check the number and SMS provider settings.")
+                else:
+                    st.session_state.phone = phone.strip()
+                    st.session_state.otp_sent = True
+                    st.rerun()
     else:
         st.markdown("## Check your messages")
         st.write("We sent a one-time code to your mobile number.")
         otp = st.text_input("6-digit OTP", max_chars=6, key="otp")
-        st.caption("Demo OTP: 123456")
+        if auth.configured():
+            st.caption("Enter the verification code sent by SMS.")
+        else:
+            st.caption("Demo OTP: 123456. Configure Twilio for real verification.")
         if st.button("Verify and open Vela", type="primary", use_container_width=True):
-            if otp == "123456":
+            verified = auth.verify_code(st.session_state.phone, otp) if auth.configured() else otp == "123456"
+            if verified:
                 st.session_state.logged_in = True
                 st.rerun()
             else:
-                st.error("Use the demo OTP 123456.")
+                st.error("That verification code is invalid or expired.")
         if st.button("Edit number", use_container_width=True):
             st.session_state.otp_sent = False
             st.rerun()
