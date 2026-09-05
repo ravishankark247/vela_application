@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+vela.db
+vela.db-shm
+vela.db-wal

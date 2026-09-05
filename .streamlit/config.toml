@@ -1,0 +1,9 @@
+[server]
+# Preview-friendly ceiling; actual browser, host, network, and disk limits still apply.
+maxUploadSize = 102400
+
+[client]
+showErrorDetails = "full"
+
+[browser]
+gatherUsageStats = false

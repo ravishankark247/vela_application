@@ -13,6 +13,12 @@ streamlit run app.py
 
 Open `http://localhost:8501`.
 
+You can also start the Python preview launcher directly:
+
+```bash
+python3 preview.py
+```
+
 Demo OTP: `123456`
 
 ## Deploy to Streamlit Community Cloud
@@ -30,13 +36,26 @@ Streamlit will install `requirements.txt` and use `.streamlit/config.toml` autom
 - Mobile number and OTP login preview
 - One-to-one and group chats
 - Search, unread state, online friends, status, and calls
+- Voice messages, local microphone recording, video-call camera preview, and voice/video call controls
 - Any-file chat attachments
 - File conversion workspace
 - Camera document scanning
 - Settings and sign out
 - Vela AI Tutor for quizzes, explanations, flashcards, summaries, and study plans
 
+## Persistent data
+
+The app now creates `vela.db` automatically and stores chats, messages, voice messages, feed posts, likes, and comments across Streamlit reruns and restarts. Set `VELA_DB_PATH` to place the SQLite database on a persistent disk:
+
+```bash
+VELA_DB_PATH=/data/vela.db python3 preview.py
+```
+
+SQLite is reliable for a single running app server. For multiple users or multiple server instances, replace the storage layer with a hosted PostgreSQL service and object storage for uploaded media. The app cannot keep an internet connection when a device or network is offline; the UI shows a storage warning and continues with session data during a temporary database failure.
+
 The upload configuration is set to 100 GB per file for the preview. Actual deployments still depend on browser, hosting, storage, and network limits.
+
+The voice and video call experience is a local Streamlit preview: it can access the browser microphone and camera, record voice messages, and show call states. Real-time calls between different users require a WebRTC signaling service and a backend, which are outside this single-process preview.
 
 ## AI Tutor providers
 
